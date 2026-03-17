@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en" ng-app="libraryApp">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Library Management System – 6th Semester AngularJS SPA Project" />
+  <title>Library Management System | AJS Project</title>
+
+  <!-- AngularJS 1.8 CDN -->
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular-route.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular-animate.min.js"></script>
+
+  <!-- Project stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+  <!-- ===== INLINE TEMPLATES (works with file:// protocol – no XHR needed) ===== -->
+
+  <script type="text/ng-template" id="views/dashboard.html">
+    <div class="page-header">
+      <h2>📊 Dashboard</h2>
+      <p>Overview of the Library Management System</p>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon">📚</div>
+        <div class="stat-label">Total Books</div>
+        <div class="stat-value">{{ stats.totalBooks }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-label">Total Members</div>
+        <div class="stat-value">{{ stats.totalMembers }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📖</div>
+        <div class="stat-label">Active Issues</div>
+        <div class="stat-value">{{ stats.activeIssues }}</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">⚠️</div>
+        <div class="stat-label">Overdue</div>
+        <div class="stat-value">{{ stats.overdue }}</div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3>Recent Transactions</h3>
+      <div ng-if="recentTransactions.length === 0" class="empty-state">
+        <span class="empty-icon">📋</span>
+        <p>No transactions yet. Go to <strong>Issue / Return</strong> tab to issue books!</p>
+      </div>
+      <div class="table-wrap" ng-if="recentTransactions.length > 0">
+        <table>
+          <thead>
+            <tr>
+              <th>Book</th>
+              <th>Member</th>
+              <th>Issued</th>
+              <th>Due</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="t in recentTransactions">
+              <td><strong>{{ t.bookTitle }}</strong></td>
+              <td>{{ t.memberName }}</td>
+              <td>{{ t.issueDate }}</td>
+              <td>{{ t.dueDate }}</td>
+              <td>
+                <span class="badge" ng-class="t.status === 'returned' ? 'badge-success' : (isOverdue(t) ? 'badge-danger' : 'badge-info')">
+                  {{ t.status === 'returned' ? '✅ Returned' : (isOverdue(t) ? '⚠️ Overdue' : '📖 Issued') }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3>Quick Tips</h3>
+      <div class="alert alert-info">📚 Use the <strong>Books</strong> tab to add, edit or remove books from the collection.</div>
+      <div class="alert alert-info">👥 Register library members in the <strong>Members</strong> tab.</div>
+      <div class="alert alert-info">📖 Issue and return books using the <strong>Issue / Return</strong> tab.</div>
+    </div>
+  </script>
+
+  <script type="text/ng-template" id="views/books.html">
+    <div class="page-header">
+      <h2>📚 Books</h2>
+      <p>Manage the library book collection – add, edit, delete and search</p>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-box">
+        <span>🔍</span>
+        <input type="text" ng-model="searchQuery" placeholder="Search by title, author, genre, ISBN..." />
+      </div>
+      <button id="btn-add-book" class="btn btn-primary" ng-click="openAddModal()">+ Add Book</button>
+    </div>
+
+    <div class="section-card">
+      <div ng-if="books.length === 0" class="empty-state">
+        <span class="empty-icon">📚</span>
+        <p>No books found. Click <strong>"Add Book"</strong> to get started.</p>
+      </div>
+
+      <div class="table-wrap" ng-if="books.length > 0">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Code</th>
+              <th>Title</th>
+              <th>Author</th>
+              <th>Genre</th>
+              <th>Year</th>
+              <th>Available</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="b in books | bookSearch:searchQuery track by b.id">
+              <td>{{ $index + 1 }}</td>
+              <td><strong>{{ b.bookCode }}</strong></td>
+              <td>{{ b.title }}</td>
+              <td>{{ b.author }}</td>
+              <td>
+                <span class="badge badge-primary">{{ b.genre }}</span>
+              </td>
+              <td>{{ b.year }}</td>
+              <td>
+                <span class="badge" ng-class="b.availableCopies > 0 ? 'badge-success' : 'badge-danger'">
+                  {{ b.availableCopies }} / {{ b.totalCopies }}
+                </span>
+              </td>
+              <td>
+                <button class="btn btn-warning btn-sm" ng-click="openEditModal(b)">✏️ Edit</button>
+                &nbsp;
+                <button class="btn btn-danger btn-sm" ng-click="deleteBook(b.id)">🗑 Del</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Add / Edit Modal -->
+    <div class="modal-overlay" ng-if="showModal">
+      <div class="modal-box">
+        <h3>{{ editMode ? '✏️ Edit Book' : '➕ Add New Book' }}</h3>
+        <div class="alert alert-danger" ng-if="formError">{{ formError }}</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Book Title *</label>
+            <input id="inp-title" type="text" ng-model="formBook.title" placeholder="e.g. Clean Code" />
+          </div>
+          <div class="form-group">
+            <label>Author *</label>
+            <input type="text" ng-model="formBook.author" placeholder="e.g. Robert C. Martin" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Genre *</label>
+            <select id="sel-genre" ng-model="formBook.genre">
+              <option value="">-- Select Genre --</option>
+              <option ng-repeat="g in genres" value="{{ g }}">{{ g }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>ISBN</label>
+            <input type="text" ng-model="formBook.isbn" placeholder="e.g. 978-0132350884" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Publication Year</label>
+            <input type="number" ng-model="formBook.year" placeholder="e.g. 2020" />
+          </div>
+          <div class="form-group">
+            <label>Total Copies *</label>
+            <input type="number" min="1" ng-model="formBook.totalCopies" placeholder="e.g. 3" />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" ng-click="closeModal()">Cancel</button>
+          <button id="btn-save-book" class="btn btn-primary" ng-click="saveBook()">
+            {{ editMode ? 'Update' : 'Add Book' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <script type="text/ng-template" id="views/members.html">
+    <div class="page-header">
+      <h2>👥 Members</h2>
+      <p>Manage library members – add, edit, delete and search</p>
+    </div>
+
+    <div class="toolbar">
+      <div class="search-box">
+        <span>🔍</span>
+        <input type="text" ng-model="searchQuery" placeholder="Search by name, ID, email..." />
+      </div>
+      <button id="btn-add-member" class="btn btn-primary" ng-click="openAddModal()">+ Add Member</button>
+    </div>
+
+    <div class="section-card">
+      <div ng-if="members.length === 0" class="empty-state">
+        <span class="empty-icon">👥</span>
+        <p>No members found. Click <strong>"Add Member"</strong> to register one.</p>
+      </div>
+
+      <div class="table-wrap" ng-if="members.length > 0">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Member ID</th>
+              <th>Name</th>
+              <th>Email</th>
+              <th>Phone</th>
+              <th>Type</th>
+              <th>Joined</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="m in members | memberSearch:searchQuery track by m.id">
+              <td>{{ $index + 1 }}</td>
+              <td><strong>{{ m.memberId }}</strong></td>
+              <td>{{ m.name }}</td>
+              <td>{{ m.email || '—' }}</td>
+              <td>{{ m.phone || '—' }}</td>
+              <td>
+                <span class="badge" ng-class="m.membershipType === 'Premium' ? 'badge-warning' : 'badge-info'">
+                  {{ m.membershipType }}
+                </span>
+              </td>
+              <td>{{ m.joinDate }}</td>
+              <td>
+                <button class="btn btn-warning btn-sm" ng-click="openEditModal(m)">✏️ Edit</button>
+                &nbsp;
+                <button class="btn btn-danger btn-sm" ng-click="deleteMember(m.id)">🗑 Del</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Add / Edit Member Modal -->
+    <div class="modal-overlay" ng-if="showModal">
+      <div class="modal-box">
+        <h3>{{ editMode ? '✏️ Edit Member' : '➕ Add New Member' }}</h3>
+        <div class="alert alert-danger" ng-if="formError">{{ formError }}</div>
+
+        <div class="form-group">
+          <label>Full Name *</label>
+          <input id="inp-member-name" type="text" ng-model="formMember.name" placeholder="e.g. Ansh Sharma" />
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Email</label>
+            <input type="email" ng-model="formMember.email" placeholder="member@example.com" />
+          </div>
+          <div class="form-group">
+            <label>Phone</label>
+            <input type="tel" ng-model="formMember.phone" placeholder="10-digit mobile number" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Membership Type</label>
+          <select ng-model="formMember.membershipType">
+            <option value="Standard">Standard</option>
+            <option value="Premium">Premium</option>
+          </select>
+        </div>
+
+        <div class="modal-actions">
+          <button class="btn btn-secondary" ng-click="closeModal()">Cancel</button>
+          <button id="btn-save-member" class="btn btn-primary" ng-click="saveMember()">
+            {{ editMode ? 'Update' : 'Add Member' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  </script>
+
+  <script type="text/ng-template" id="views/issue-return.html">
+    <div class="page-header">
+      <h2>📖 Issue / Return</h2>
+      <p>Issue books to members and process returns</p>
+    </div>
+
+    <div class="section-card">
+      <h3>Issue a Book</h3>
+
+      <div ng-if="members.length === 0 || books.length === 0" class="empty-state">
+        <span class="empty-icon">📖</span>
+        <p>Please add <strong>Books</strong> and <strong>Members</strong> first.</p>
+      </div>
+
+      <div ng-if="members.length > 0 && books.length > 0">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Select Member</label>
+            <select id="sel-issue-member" ng-model="selectedMemberId">
+              <option value="">-- Choose Member --</option>
+              <option ng-repeat="m in members" value="{{ m.id }}">{{ m.memberId }} – {{ m.name }}</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Select Book (Available)</label>
+            <select id="sel-issue-book" ng-model="selectedBookId">
+              <option value="">-- Choose Book --</option>
+              <option ng-repeat="b in availableBooks" value="{{ b.id }}">{{ b.bookCode }} – {{ b.title }} ({{ b.availableCopies }} left)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="alert" ng-class="'alert-' + issueMsgType" ng-if="issueMsg">{{ issueMsg }}</div>
+        <button id="btn-issue" class="btn btn-primary" ng-click="issueBook()">📖 Issue Book</button>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h3>Currently Issued Books</h3>
+
+      <div ng-if="activeIssues.length === 0" class="empty-state">
+        <span class="empty-icon">✅</span>
+        <p>No books are currently issued.</p>
+      </div>
+
+      <div class="alert" ng-class="'alert-' + returnMsgType" ng-if="returnMsg">{{ returnMsg }}</div>
+
+      <div class="table-wrap" ng-if="activeIssues.length > 0">
+        <table>
+          <thead>
+            <tr>
+              <th>Book</th>
+              <th>Member</th>
+              <th>Issued</th>
+              <th>Due</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr ng-repeat="t in activeIssues">
+              <td><strong>{{ t.bookTitle }}</strong></td>
+              <td>{{ t.memberName }}</td>
+              <td>{{ t.issueDate }}</td>
+              <td>{{ t.dueDate }}</td>
+              <td>
+                <span class="badge" ng-class="isOverdue(t) ? 'badge-danger' : 'badge-info'">
+                  {{ isOverdue(t) ? '⚠️ Overdue' : '📖 Active' }}
+                </span>
+              </td>
+              <td>
+                <button class="btn btn-success btn-sm" ng-click="returnBook(t.id)">↩️ Return</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </script>
+
+  <script type="text/ng-template" id="views/about.html">
+    <div class="page-header">
+      <h2>ℹ️ About</h2>
+      <p>Project details, technologies used and developer info</p>
+    </div>
+
+    <div class="about-card">
+      <h3>📌 Project Overview</h3>
+      <p>
+        The <strong>Library Management System</strong> is a web-based Single Page Application (SPA)
+        built using <strong>AngularJS 1.8</strong>. It provides a simple and efficient interface
+        to manage library books, members, and issue/return transactions —
+        all without any page reload, thanks to AngularJS's client-side routing.
+      </p>
+    </div>
+
+    <div class="about-card">
+      <h3>🎯 Features</h3>
+      <ul>
+        <li>Add, Edit and Delete books with live search/filter by title, author, genre or ISBN</li>
+        <li>Register and manage library members (Standard & Premium memberships)</li>
+        <li>Issue books to members with automatic due date calculation (14 days)</li>
+        <li>Return books with one-click and automatic copy count updates</li>
+        <li>Dashboard with summary stats (total books, members, active issues, overdue)</li>
+        <li>Overdue detection – highlights books past their due date</li>
+        <li>Data stored in <strong>localStorage</strong> — persists on page refresh</li>
+        <li>SPA navigation powered by <strong>ngRoute</strong> (no page reload)</li>
+      </ul>
+    </div>
+
+    <div class="about-card">
+      <h3>🛠 Technologies Used</h3>
+      <div class="tech-chips">
+        <span class="chip" ng-repeat="t in projectInfo.techs">{{ t }}</span>
+      </div>
+    </div>
+
+    <div class="about-card">
+      <h3>👨‍💻 Developer Info</h3>
+      <table style="width:auto; font-size:0.88rem;">
+        <tbody>
+          <tr><td style="padding:5px 20px 5px 0;font-weight:600;color:#4a5568;">Project Title</td><td>{{ projectInfo.title }}</td></tr>
+          <tr><td style="padding:5px 20px 5px 0;font-weight:600;color:#4a5568;">Subject</td><td>{{ projectInfo.subject }}</td></tr>
+          <tr><td style="padding:5px 20px 5px 0;font-weight:600;color:#4a5568;">Semester</td><td>{{ projectInfo.semester }}</td></tr>
+          <tr><td style="padding:5px 20px 5px 0;font-weight:600;color:#4a5568;">Academic Year</td><td>{{ projectInfo.year }}</td></tr>
+          <tr><td style="padding:5px 20px 5px 0;font-weight:600;color:#4a5568;">Student Name</td><td>{{ projectInfo.student }}</td></tr>
+          <tr><td style="padding:5px 20px 5px 0;font-weight:600;color:#4a5568;">College</td><td>{{ projectInfo.college }}</td></tr>
+          <tr><td style="padding:5px 20px 5px 0;font-weight:600;color:#4a5568;">Guide</td><td>{{ projectInfo.guide }}</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="about-card">
+      <h3>📚 Key AngularJS Concepts Demonstrated</h3>
+      <ul>
+        <li><strong>Module &amp; Config</strong> – <code>angular.module()</code> with <code>ngRoute</code></li>
+        <li><strong>Controllers</strong> – Separate controller per view with $scope</li>
+        <li><strong>Services</strong> – <code>LibraryService</code> for localStorage CRUD</li>
+        <li><strong>Filters</strong> – Custom <code>bookSearch</code> and <code>memberSearch</code> for live filtering</li>
+        <li><strong>Directives</strong> – ng-repeat, ng-model, ng-if, ng-click, ng-class, ng-change</li>
+        <li><strong>Two-way Data Binding</strong> – Real-time UI updates via ng-model</li>
+        <li><strong>Interpolation {{ }}</strong> – Dynamic expression rendering</li>
+      </ul>
+    </div>
+  </script>
+
+  <!-- ======= NAVBAR ======= -->
+  <nav class="navbar" ng-controller="AppCtrl">
+    <div class="brand">📚 <span>Library</span> Management System</div>
+    <ul>
+      <li><a href="#/" id="nav-dashboard" ng-class="{'active-link': isActive('/')}">📊 Dashboard</a></li>
+      <li><a href="#/books" id="nav-books" ng-class="{'active-link': isActive('/books')}">📚 Books</a></li>
+      <li><a href="#/members" id="nav-members" ng-class="{'active-link': isActive('/members')}">👥 Members</a></li>
+      <li><a href="#/issue-return" id="nav-issue-return" ng-class="{'active-link': isActive('/issue-return')}">📖 Issue / Return</a></li>
+      <li><a href="#/about" id="nav-about" ng-class="{'active-link': isActive('/about')}">ℹ️ About</a></li>
+    </ul>
+  </nav>
+
+  <!-- ======= MAIN CONTENT ======= -->
+  <div class="main-content">
+    <div ng-view></div>
+  </div>
+
+  <!-- ======= FOOTER ======= -->
+  <footer class="footer">
+    Library Management System &nbsp;|&nbsp; 6th Semester AngularJS Project &nbsp;|&nbsp;
+    Developed by <strong>Ansh</strong>
+  </footer>
+
+  <!-- ======= SCRIPTS ======= -->
+  <script src="app.js"></script>
+  <script>
+    angular.module('libraryApp').controller('AppCtrl', function ($scope, $location) {
+      $scope.isActive = function (path) {
+        return $location.path() === path;
+      };
+    });
+  </script>
+
+</body>
+
+</html>

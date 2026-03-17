@@ -1,0 +1,230 @@
+PROJECT REPORT
+==============
+LIBRARY MANAGEMENT SYSTEM
+Single Page Application using AngularJS
+6th Semester | Advanced JavaScript
+
+-------------------------------------------------------
+STUDENT NAME   : krish
+COLLEGE        : Atmiya University 
+DEPARTMENT     : B.TECH(c.e.)
+ACADEMIC YEAR  : 2023-2026
+-------------------------------------------------------
+
+
+1. TITLE
+--------
+Library Management System – A Single Page Application (SPA) developed using AngularJS 1.8
+
+
+2. ABSTRACT
+-----------
+This project presents the design and development of a Library Management System (LMS)
+as a Single Page Application (SPA) using AngularJS 1.x. The system allows users to manage
+a library's book collection, register members, and handle book issue/return transactions –
+all through a clean, interactive web interface that requires no page reload and no backend server.
+
+Data is stored persistently in the browser's localStorage API, making the application fully
+functional offline. The project demonstrates multiple core AngularJS concepts including
+modules, controllers, services, filters, directives, and two-way data binding.
+
+
+3. INTRODUCTION
+---------------
+In traditional libraries, book management is often handled using paper registers or complex
+legacy software. This project aims to simplify that using a lightweight, browser-based
+solution. AngularJS provides a structured MVC framework ideal for building dynamic,
+data-driven web applications.
+
+This SPA was built with no backend or build tools – just HTML, CSS, and JavaScript – making
+it easy to run locally by opening index.html directly in any modern browser.
+
+
+4. OBJECTIVES
+-------------
+  - To build a fully functional Single Page Application using AngularJS 1.x (no reload)
+  - To implement CRUD operations (Create, Read, Update, Delete) for books and members
+  - To implement a book issue/return system with due date tracking
+  - To demonstrate AngularJS concepts: modules, controllers, services, filters, directives
+  - To persist data locally using the Web Storage (localStorage) API
+  - To create a clean, responsive user interface using plain CSS
+
+
+5. TECHNOLOGIES USED
+--------------------
+  Technology         Version / Detail
+  -----------------  -------------------------------
+  AngularJS          1.8.3 (via Google CDN)
+  angular-route      1.8.3 (ngRoute for SPA routing)
+  angular-animate    1.8.3 (view transitions)
+  HTML               HTML5
+  CSS                CSS3 (Vanilla, no framework)
+  JavaScript         ES5 (compatible with AJS 1.x)
+  Storage            Browser localStorage API
+  Font               Poppins (Google Fonts CDN)
+
+
+6. SYSTEM DESIGN
+----------------
+
+6.1 Module Structure
+  - Module: libraryApp
+  - Dependencies: ['ngRoute']
+  - Routes defined using $routeProvider in app.config()
+
+6.2 Routes and Views
+  Route            Template File              Controller
+  ---------------  -------------------------  ------------------
+  /                views/dashboard.html       DashboardCtrl
+  /books           views/books.html           BooksCtrl
+  /members         views/members.html         MembersCtrl
+  /issue-return    views/issue-return.html    IssueReturnCtrl
+  /about           views/about.html           AboutCtrl
+
+6.3 Service Layer
+  LibraryService encapsulates all data access logic using localStorage:
+  - getBooks() / saveBooks() / addBook() / updateBook() / deleteBook() / getBookById()
+  - getMembers() / saveMembers() / addMember() / updateMember() / deleteMember()
+  - getTransactions() / saveTransactions() / issueBook() / returnBook()
+  - getActiveIssues() / getOverdueCount()
+  - seedData() – populates sample data on first load
+
+6.4 Custom Filters
+  - bookSearch: Filters book list by title, author, genre, ISBN, or book code
+  - memberSearch: Filters member list by name, member ID, email, or membership type
+
+
+7. FEATURES IMPLEMENTED
+-----------------------
+  [Dashboard]
+  - Summary cards: Total Books, Total Members, Active Issues, Overdue Count
+  - Recent transactions table showing issued/returned/overdue status
+  - Quick tips for new users
+
+  [Books]
+  - Live search/filter using custom AngularJS filter (bookSearch)
+  - Add new book (modal form with validation)
+  - Edit existing book (pre-filled modal)
+  - Delete book (with confirmation)
+  - Fields: Title, Author, Genre, ISBN, Publication Year, Total Copies
+  - Auto-generated book code (B001, B002, etc.)
+  - Available/Total copies display with colour-coded badges
+
+  [Members]
+  - Live search/filter using custom AngularJS filter (memberSearch)
+  - Add new member (modal form with validation)
+  - Edit existing member (pre-filled modal)
+  - Delete member (with confirmation)
+  - Fields: Name, Email, Phone, Membership Type (Standard/Premium)
+  - Auto-generated member ID (M001, M002, etc.)
+  - Auto-recorded join date
+
+  [Issue / Return]
+  - Select member from dropdown
+  - Select available book from dropdown (shows remaining copies)
+  - Issue book with automatic 14-day due date calculation
+  - Duplicate issue prevention (same book to same member)
+  - Currently issued books table with overdue detection
+  - One-click return with automatic copy count restoration
+  - Colour-coded status badges (Active / Overdue)
+
+  [About]
+  - Project details, developer info, features list
+  - Technologies used (displayed as chips)
+  - AngularJS concepts demonstrated
+
+
+8. AngularJS CONCEPTS DEMONSTRATED
+-----------------------------------
+  Concept             How Used
+  ------------------  -------------------------------------------------------
+  ng-app              Bootstraps the AngularJS application on <html> tag
+  ng-controller       Attaches controller to DOM regions
+  ng-view             Renders the active route's template (SPA mechanic)
+  ng-model            Two-way data binding on input/select fields
+  ng-repeat           Renders lists: books, members, transactions
+  ng-if               Conditionally shows/hides modals, empty states, alerts
+  ng-class            Dynamically sets CSS classes (active link, badge color)
+  ng-click            Handles button click events
+  ng-change           Not used in this project (optional)
+  $routeProvider      Maps URL hash routes to templates and controllers
+  $location           Used to detect the current route for nav highlighting
+  Custom Filter       'bookSearch' and 'memberSearch' for live filtering
+  Service             'LibraryService' for all localStorage CRUD operations
+  $scope              Shared data model between controller and view
+  Interpolation {{ }} Dynamic expression rendering in templates
+
+
+9. FILE STRUCTURE
+-----------------
+  library-management/
+  │
+  ├── index.html          ← Main HTML entry point, loads AJS, defines navbar,
+  │                         inline ng-template blocks for all 5 views
+  ├── app.js              ← AngularJS module, routing, controllers, service, filters
+  ├── style.css           ← All CSS styling (teal/emerald theme)
+  └── report.txt          ← This project report
+
+
+10. HOW TO RUN
+--------------
+  1. Open the folder "library-management" in Windows Explorer
+  2. Double-click index.html to open it in any modern browser (Chrome/Edge/Firefox)
+     NOTE: For AngularJS ngRoute to work, you may need to either:
+     a) Use VS Code Live Server extension (Right-click index.html → Open with Live Server), OR
+     b) Run a simple local server:
+        - Python 3: cd "library-management" && python -m http.server 8080
+          Then open http://localhost:8080 in browser
+  3. Navigate using the top navbar tabs
+
+
+11. SAMPLE DATA (PRE-LOADED)
+-----------------------------
+  Books (8 seed entries):
+    - Clean Code by Robert C. Martin (Programming)
+    - The Alchemist by Paulo Coelho (Fiction)
+    - Introduction to Algorithms by Thomas H. Cormen (Computer Science)
+    - A Brief History of Time by Stephen Hawking (Science)
+    - To Kill a Mockingbird by Harper Lee (Fiction)
+    - Design Patterns by Gang of Four (Programming)
+    - Sapiens by Yuval Noah Harari (History)
+    - The Pragmatic Programmer by Andrew Hunt (Programming)
+
+  Members (5 seed entries):
+    - Ansh Sharma (Premium), Priya Patel (Standard), Rohan Mehta (Premium),
+      Sneha Joshi (Standard), Arjun Verma (Premium)
+
+  Transactions (5 seed entries):
+    - 3 active issues, 2 returned books (with overdue scenarios)
+
+
+12. CONCLUSION
+--------------
+The Library Management System successfully demonstrates the power of AngularJS for building
+interactive Single Page Applications without a backend server. Key AngularJS concepts such
+as two-way data binding, client-side routing (ngRoute), custom services, and filters were
+effectively utilized. The use of localStorage ensures data persists across sessions without
+requiring a database.
+
+This project can be extended in future to include:
+  - Backend integration (Node.js / PHP / Firebase)
+  - User authentication and role-based access (Librarian vs Member)
+  - Fine calculation for overdue books
+  - Report generation (PDF export)
+  - Chart visualisations for book circulation trends
+  - Barcode/QR scanning for quick issue/return
+  - Responsive mobile app (Apache Cordova wrapper)
+
+
+13. REFERENCES
+--------------
+  [1] AngularJS Official Documentation – https://angularjs.org
+  [2] AngularJS Guide: Developer Guide – https://docs.angularjs.org/guide
+  [3] MDN Web Docs: localStorage – https://developer.mozilla.org/en-US/docs/Web/API/Window/localStorage
+  [4] W3Schools AngularJS Tutorial – https://www.w3schools.com/angular/
+  [5] Google Fonts – https://fonts.google.com
+
+
+-------------------------------------------------------
+End of Report
+-------------------------------------------------------
